@@ -1,0 +1,4 @@
+node_modules/
+.git
+# respect authors wish of not sharing individual input files
+**/**/input.txt

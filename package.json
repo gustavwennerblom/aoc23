@@ -1,0 +1,18 @@
+{
+  "name": "aoc23",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "init-day": "./scripts/_template/init_day.sh",
+    "start": "pnpm -C scripts start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^20.10.1",
+    "nodemon": "^3.0.1",
+    "typescript": "^5.3.2"
+  }
+}
