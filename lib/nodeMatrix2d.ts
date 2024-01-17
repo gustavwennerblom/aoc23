@@ -3,12 +3,13 @@ export class MatrixNode {
   y: number;
   value: string;
   altValue: string; // This can be used to represent a different value for the node, e.g. to visually signal a visite node. See the PrintMatrixOptions type below.
+  costToReach?: number;
   visited: boolean;
   visitCount: number;
   lastVisitMeta: string;
   stepsToReach: number;
 
-  constructor(x: number, y: number, value: string) {
+  constructor(x: number, y: number, value: string, costToReach?: number) {
     this.x = x;
     this.y = y;
     this.value = value;
@@ -17,6 +18,7 @@ export class MatrixNode {
     this.stepsToReach = 0;
     this.lastVisitMeta = "";
     this.altValue = value;
+    this.costToReach = costToReach || Infinity;
   }
 
   toString() {
@@ -30,8 +32,9 @@ type PrintMatrixOptions = {
 
 export function printMatrix(
   matrix: MatrixNode[][],
-  { printAltValue = false }: PrintMatrixOptions
+  options?: PrintMatrixOptions
 ) {
+  const printAltValue = options?.printAltValue ?? false;
   if (printAltValue) {
     for (const row of matrix) {
       console.log(row.map((node) => node.altValue).join(""));

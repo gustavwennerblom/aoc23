@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "nodemon ./dec-16/solve.ts"
+    "start": "nodemon ./dec-17/solve.ts"
   },
   "dependencies": {
     "@datastructures-js/linked-list": "^6.1.1",
