@@ -110,9 +110,6 @@ const moveCrucible = (
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
-      console.log(
-        `Iteration ${iter} - observing tile at x:${nextTile.x}, y:${nextTile.y}`
-      );
       const disallowedDirections: string[] = [];
       // Crucible can only move in a direction if it hasn't moved in that direction in the last three moves
       if (
@@ -133,9 +130,6 @@ const moveCrucible = (
         };
         queue.push(newCrucible);
       }
-      if (iter % 1000 === 0) {
-        console.log(`Iteration ${iter} - queue length: ${queue.length}`);
-      }
     }
   }
   return matrix;
@@ -147,8 +141,13 @@ function solvePart1(file_path: string) {
   const travelledMatrix = moveCrucible(matrix, [1, 1]);
   const arrivalTile =
     travelledMatrix[travelledMatrix.length - 2][travelledMatrix[0].length - 2];
-  write(`Part 1: Minimum heat loss ${arrivalTile.costToReach}`);
-  printMatrix(travelledMatrix, { printAltValue: true });
+
+  // Remove the heat losses incurred on the start tile and the arrival tile
+  const totalHeatLoss =
+    arrivalTile.costToReach! -
+    parseInt(matrix[1][1].value) -
+    parseInt(arrivalTile.value);
+  write(`Part 1: Minimum heat loss ${totalHeatLoss}`);
 }
 
 function solvePart2(file_path: string) {
