@@ -4,6 +4,7 @@
   },
   "dependencies": {
     "@datastructures-js/linked-list": "^6.1.1",
+    "heap-js": "^2.3.0",
     "nodemon": "^3.0.1"
   }
 }

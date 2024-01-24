@@ -10,7 +10,7 @@ import {
   padMatrix,
   printMatrix,
 } from "../../lib/nodeMatrix2d";
-import test from "node:test";
+import { Heap } from "heap-js";
 
 const testFilePath: string = path.resolve(`${__dirname}/test.txt`);
 const inputFilePath: string = path.resolve(`${__dirname}/input.txt`);
@@ -78,43 +78,33 @@ const getOppositeDirection = (direction: string) => {
   }
 };
 
-const sortStack = (_stack: CrucibleState[], matrix: MatrixNode[][]) => {
-  // const stack = structuredClone(_stack);
-  // Prune the stack to remove crucibles that stand on a tile that has been visited at a lower cost
-  // const prunedStack = stack.filter((crucible) => {
-  //   const tile = matrix[crucible.position.y][crucible.position.x];
-  //   return !tile.costToReach || crucible.heatLossIncurred < tile.costToReach;
-  // });
-
-  // Sort the stack to put the crucible with the lowes heat loss last
-  _stack.sort((a, b) => b.heatLossIncurred - a.heatLossIncurred);
-  // return prunedStack;
-};
-
 const moveCrucible = (
   _matrix: MatrixNode[][],
   startNodeCoords: [y: number, x: number],
   endNodeCoords: [y: number, x: number]
 ) => {
   const matrix = structuredClone(_matrix);
-  let stack: CrucibleState[] = [];
-  stack.push({
+
+  const comparator = (a: CrucibleState, b: CrucibleState) =>
+    a.heatLossIncurred - b.heatLossIncurred;
+  const heap = new Heap(comparator);
+
+  heap.push({
     position: { y: startNodeCoords[0], x: startNodeCoords[1] },
     directionHistory: [],
     heatLossIncurred: 0,
   });
   let iter = 0;
-  while (stack.length > 0) {
+  while (heap.length > 0) {
     iter++;
 
-    sortStack(stack, matrix);
-    const currentCrucible = stack.pop() as CrucibleState;
+    const currentCrucible = heap.pop() as CrucibleState;
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
 
-    if (iter % 1000 === 0) {
+    if (iter % 1000000 === 0) {
       console.log(
-        `Iteration ${iter}, queue length ${stack.length}, currentTile ${currentTile.y}, ${currentTile.x}`
+        `Iteration ${iter}, heap length ${heap.length}, currentTile ${currentTile.y}, ${currentTile.x}`
       );
     }
 
@@ -164,7 +154,7 @@ const moveCrucible = (
           heatLossIncurred:
             currentCrucible.heatLossIncurred + parseInt(currentTile.value),
         };
-        stack.push(newCrucible);
+        heap.push(newCrucible);
       }
     }
   }
@@ -190,6 +180,6 @@ function solvePart2(file_path: string) {
 }
 
 const start = Date.now();
-solvePart1(testFilePath);
+solvePart1(inputFilePath);
 const end = Date.now();
 write(`Execution time: ${end - start} ms`);
