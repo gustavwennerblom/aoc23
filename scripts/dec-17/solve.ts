@@ -78,12 +78,26 @@ const getOppositeDirection = (direction: string) => {
   }
 };
 
+const sortStack = (_stack: CrucibleState[], matrix: MatrixNode[][]) => {
+  // const stack = structuredClone(_stack);
+  // Prune the stack to remove crucibles that stand on a tile that has been visited at a lower cost
+  // const prunedStack = stack.filter((crucible) => {
+  //   const tile = matrix[crucible.position.y][crucible.position.x];
+  //   return !tile.costToReach || crucible.heatLossIncurred < tile.costToReach;
+  // });
+
+  // Sort the stack to put the crucible with the lowes heat loss last
+  _stack.sort((a, b) => b.heatLossIncurred - a.heatLossIncurred);
+  // return prunedStack;
+};
+
 const moveCrucible = (
   _matrix: MatrixNode[][],
-  startNodeCoords: [y: number, x: number]
+  startNodeCoords: [y: number, x: number],
+  endNodeCoords: [y: number, x: number]
 ) => {
   const matrix = structuredClone(_matrix);
-  const stack: CrucibleState[] = [];
+  let stack: CrucibleState[] = [];
   stack.push({
     position: { y: startNodeCoords[0], x: startNodeCoords[1] },
     directionHistory: [],
@@ -92,14 +106,22 @@ const moveCrucible = (
   let iter = 0;
   while (stack.length > 0) {
     iter++;
-    if (iter % 1000 === 0) {
-      console.log(`Iteration ${iter}, queue length ${stack.length}`);
-    }
-    stack.sort((a, b) => b.heatLossIncurred - a.heatLossIncurred);
 
+    sortStack(stack, matrix);
     const currentCrucible = stack.pop() as CrucibleState;
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
+
+    if (iter % 1000 === 0) {
+      console.log(
+        `Iteration ${iter}, queue length ${stack.length}, currentTile ${currentTile.y}, ${currentTile.x}`
+      );
+    }
+
+    if (currentCrucible.heatLossIncurred > currentTile.costToReach!) {
+      continue;
+    }
+
     const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
     const crucibleHeatLossIncludingThis =
       currentCrucible.heatLossIncurred + parseInt(currentTile.value);
@@ -111,6 +133,14 @@ const moveCrucible = (
       currentTile.costToReach = crucibleHeatLossIncludingThis;
     }
     currentTile.visited = true;
+
+    if (
+      currentTile.y === endNodeCoords[0] &&
+      currentTile.x === endNodeCoords[1]
+    ) {
+      console.log("Found the exit!");
+      break;
+    }
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
@@ -144,9 +174,11 @@ const moveCrucible = (
 function solvePart1(file_path: string) {
   const input = readFile(file_path);
   const matrix = parseInput(input);
-  const travelledMatrix = moveCrucible(matrix, [1, 1]);
-  const arrivalTile =
-    travelledMatrix[travelledMatrix.length - 2][travelledMatrix[0].length - 2];
+  const endY = matrix.length - 2;
+  const endX = matrix[0].length - 2;
+  write(`Part 1: Exit tile ${endY}, ${endX}`);
+  const travelledMatrix = moveCrucible(matrix, [1, 1], [endY, endX]);
+  const arrivalTile = travelledMatrix[endY][endX];
 
   // Remove the heat losses incurred on the start tile
   const totalHeatLoss = arrivalTile.costToReach! - parseInt(matrix[1][1].value);
