@@ -91,35 +91,39 @@ const moveCrucible = (
   let iter = 0;
   while (queue.length > 0) {
     iter++;
+    queue.sort((a, b) => a.heatLossIncurred - b.heatLossIncurred);
+
     const currentCrucible = queue.shift() as CrucibleState;
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
     const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
+    const crucibleHeatLossIncludingThis =
+      currentCrucible.heatLossIncurred + parseInt(currentTile.value);
 
     if (
       currentTile.costToReach &&
-      currentCrucible.heatLossIncurred + parseInt(currentTile.value) >
-        currentTile.costToReach
+      crucibleHeatLossIncludingThis > currentTile.costToReach
     ) {
       continue;
     }
 
-    currentTile.costToReach =
-      currentCrucible.heatLossIncurred + parseInt(currentTile.value);
-    currentTile.altValue = currentTile.costToReach.toString() + " ";
+    currentTile.costToReach = crucibleHeatLossIncludingThis;
+    currentTile.altValue = crucibleHeatLossIncludingThis.toString() + " ";
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
       const disallowedDirections: string[] = [];
+      const lastCrucibleDirection =
+        currentCrucible.directionHistory.slice(-1)[0];
       // Crucible can only move in a direction if it hasn't moved in that direction in the last three moves
       if (
         lastThreeDirections.length === 3 &&
         lastThreeDirections.every((d) => d === direction)
       ) {
-        disallowedDirections.push(lastThreeDirections[0]);
+        disallowedDirections.push(lastCrucibleDirection);
       }
       // Crucible cannot move in the opposite direction of the last move
-      disallowedDirections.push(getOppositeDirection(direction));
+      disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
 
       if (!disallowedDirections.includes(direction)) {
         const newCrucible: CrucibleState = {
@@ -142,12 +146,10 @@ function solvePart1(file_path: string) {
   const arrivalTile =
     travelledMatrix[travelledMatrix.length - 2][travelledMatrix[0].length - 2];
 
-  // Remove the heat losses incurred on the start tile and the arrival tile
-  const totalHeatLoss =
-    arrivalTile.costToReach! -
-    parseInt(matrix[1][1].value) -
-    parseInt(arrivalTile.value);
+  // Remove the heat losses incurred on the start tile
+  const totalHeatLoss = arrivalTile.costToReach! - parseInt(matrix[1][1].value);
   write(`Part 1: Minimum heat loss ${totalHeatLoss}`);
+  printMatrix(travelledMatrix, { printAltValue: true });
 }
 
 function solvePart2(file_path: string) {
