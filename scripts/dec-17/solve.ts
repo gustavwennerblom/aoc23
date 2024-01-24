@@ -10,6 +10,7 @@ import {
   padMatrix,
   printMatrix,
 } from "../../lib/nodeMatrix2d";
+import test from "node:test";
 
 const testFilePath: string = path.resolve(`${__dirname}/test.txt`);
 const inputFilePath: string = path.resolve(`${__dirname}/input.txt`);
@@ -82,18 +83,21 @@ const moveCrucible = (
   startNodeCoords: [y: number, x: number]
 ) => {
   const matrix = structuredClone(_matrix);
-  const queue: CrucibleState[] = [];
-  queue.push({
+  const stack: CrucibleState[] = [];
+  stack.push({
     position: { y: startNodeCoords[0], x: startNodeCoords[1] },
     directionHistory: [],
     heatLossIncurred: 0,
   });
   let iter = 0;
-  while (queue.length > 0) {
+  while (stack.length > 0) {
     iter++;
-    queue.sort((a, b) => a.heatLossIncurred - b.heatLossIncurred);
+    if (iter % 1000 === 0) {
+      console.log(`Iteration ${iter}, queue length ${stack.length}`);
+    }
+    stack.sort((a, b) => b.heatLossIncurred - a.heatLossIncurred);
 
-    const currentCrucible = queue.shift() as CrucibleState;
+    const currentCrucible = stack.pop() as CrucibleState;
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
     const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
@@ -102,13 +106,11 @@ const moveCrucible = (
 
     if (
       currentTile.costToReach &&
-      crucibleHeatLossIncludingThis > currentTile.costToReach
+      crucibleHeatLossIncludingThis < currentTile.costToReach
     ) {
-      continue;
+      currentTile.costToReach = crucibleHeatLossIncludingThis;
     }
-
-    currentTile.costToReach = crucibleHeatLossIncludingThis;
-    currentTile.altValue = crucibleHeatLossIncludingThis.toString() + " ";
+    currentTile.visited = true;
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
@@ -125,14 +127,14 @@ const moveCrucible = (
       // Crucible cannot move in the opposite direction of the last move
       disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
 
-      if (!disallowedDirections.includes(direction)) {
+      if (!disallowedDirections.includes(direction) && !nextTile.visited) {
         const newCrucible: CrucibleState = {
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
           heatLossIncurred:
             currentCrucible.heatLossIncurred + parseInt(currentTile.value),
         };
-        queue.push(newCrucible);
+        stack.push(newCrucible);
       }
     }
   }
@@ -149,7 +151,6 @@ function solvePart1(file_path: string) {
   // Remove the heat losses incurred on the start tile
   const totalHeatLoss = arrivalTile.costToReach! - parseInt(matrix[1][1].value);
   write(`Part 1: Minimum heat loss ${totalHeatLoss}`);
-  printMatrix(travelledMatrix, { printAltValue: true });
 }
 
 function solvePart2(file_path: string) {
