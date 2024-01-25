@@ -84,6 +84,11 @@ const isTarget = (tile: MatrixNode, endNodeCoords: [y: number, x: number]) => {
   return tile.y === endNodeCoords[0] && tile.x === endNodeCoords[1];
 };
 
+const serializeMove = (tile: MatrixNode, direction: string[]) =>
+  `${tile.y},${tile.x},${direction}`;
+
+const crucibleMovesSeen = new Set<string>();
+
 const moveCrucible = (
   _matrix: MatrixNode[][],
   startNodeCoords: [y: number, x: number],
@@ -122,10 +127,14 @@ const moveCrucible = (
     if (isTarget(currentTile, endNodeCoords)) {
       console.log("Found the exit!");
       solutions.push(currentCrucible);
+      continue;
     }
 
     currentTile.visited = true;
-    currentTile.costToReach = currentCrucible.heatLossIncurred;
+    currentTile.costToReach = Math.min(
+      currentCrucible.heatLossIncurred,
+      currentTile.costToReach || Infinity
+    );
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
@@ -144,6 +153,13 @@ const moveCrucible = (
       disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
 
       if (!disallowedDirections.includes(direction)) {
+        // if (
+        //   crucibleMovesSeen.has(
+        //     serializeMove(currentTile, [...lastThreeDirections, direction])
+        //   )
+        // ) {
+        //   continue;
+        // }
         const nextHeatLossIncurred =
           currentCrucible.heatLossIncurred + parseInt(nextTile.value);
         const distanceToTarget = getManhattanDistance(
@@ -163,6 +179,9 @@ const moveCrucible = (
           if (solutions.length > 0 && !isTarget(nextTile, endNodeCoords)) {
             continue;
           }
+          // crucibleMovesSeen.add(
+          //   serializeMove(currentTile, [...lastThreeDirections, direction])
+          // );
           priorityQueue.push(newCrucible);
         }
       }
@@ -177,7 +196,7 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const minHeatLossCrucibles = moveCrucible(matrix, [80, 80], [endY, endX]);
+  const minHeatLossCrucibles = moveCrucible(matrix, [70, 70], [endY, endX]);
   const minHeatLossCrucible = minHeatLossCrucibles.sort(
     (a, b) => a.heatLossIncurred - b.heatLossIncurred
   )[0];
@@ -190,5 +209,6 @@ function solvePart2(file_path: string) {
 
 const start = Date.now();
 solvePart1(inputFilePath);
+// 698 (too high)
 const end = Date.now();
 write(`Execution time: ${end - start} ms`);
