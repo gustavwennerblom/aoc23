@@ -12,6 +12,7 @@ import {
   printMatrix,
 } from "../../lib/nodeMatrix2d";
 import { Heap } from "heap-js";
+import test from "node:test";
 
 const testFilePath: string = path.resolve(`${__dirname}/test.txt`);
 const inputFilePath: string = path.resolve(`${__dirname}/input.txt`);
@@ -130,15 +131,9 @@ const moveCrucible = (
       continue;
     }
 
-    currentTile.visited = true;
-    currentTile.costToReach = Math.min(
-      currentCrucible.heatLossIncurred,
-      currentTile.costToReach || Infinity
-    );
-
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
-      if (nextTile.visited) continue;
+      // if (nextTile.visited) continue;
       const disallowedDirections: string[] = [];
       const lastCrucibleDirection =
         currentCrucible.directionHistory.slice(-1)[0];
@@ -153,13 +148,13 @@ const moveCrucible = (
       disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
 
       if (!disallowedDirections.includes(direction)) {
-        // if (
-        //   crucibleMovesSeen.has(
-        //     serializeMove(currentTile, [...lastThreeDirections, direction])
-        //   )
-        // ) {
-        //   continue;
-        // }
+        if (
+          crucibleMovesSeen.has(
+            serializeMove(currentTile, [...lastThreeDirections, direction])
+          )
+        ) {
+          continue;
+        }
         const nextHeatLossIncurred =
           currentCrucible.heatLossIncurred + parseInt(nextTile.value);
         const distanceToTarget = getManhattanDistance(
@@ -170,20 +165,16 @@ const moveCrucible = (
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
           heatLossIncurred: nextHeatLossIncurred,
-          priority: nextHeatLossIncurred + distanceToTarget,
+          priority: nextHeatLossIncurred,
         };
-        if (
-          nextTile.costToReach &&
-          newCrucible.heatLossIncurred <= nextTile.costToReach
-        ) {
-          if (solutions.length > 0 && !isTarget(nextTile, endNodeCoords)) {
-            continue;
-          }
-          // crucibleMovesSeen.add(
-          //   serializeMove(currentTile, [...lastThreeDirections, direction])
-          // );
-          priorityQueue.push(newCrucible);
+
+        if (solutions.length > 0 && !isTarget(nextTile, endNodeCoords)) {
+          continue;
         }
+        crucibleMovesSeen.add(
+          serializeMove(currentTile, [...lastThreeDirections, direction])
+        );
+        priorityQueue.push(newCrucible);
       }
     }
   }
@@ -196,7 +187,7 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const minHeatLossCrucibles = moveCrucible(matrix, [70, 70], [endY, endX]);
+  const minHeatLossCrucibles = moveCrucible(matrix, [1, 1], [endY, endX]);
   const minHeatLossCrucible = minHeatLossCrucibles.sort(
     (a, b) => a.heatLossIncurred - b.heatLossIncurred
   )[0];
