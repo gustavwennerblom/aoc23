@@ -134,6 +134,7 @@ const moveCrucible = (
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
+      if (nextTile.visited) continue;
       const disallowedDirections: string[] = [];
       const lastCrucibleDirection =
         currentCrucible.directionHistory.slice(-1)[0];
@@ -147,7 +148,7 @@ const moveCrucible = (
       // Crucible cannot move in the opposite direction of the last move
       disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
 
-      if (!disallowedDirections.includes(direction) && !nextTile.visited) {
+      if (!disallowedDirections.includes(direction)) {
         const newCrucible: CrucibleState = {
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
@@ -180,6 +181,6 @@ function solvePart2(file_path: string) {
 }
 
 const start = Date.now();
-solvePart1(inputFilePath);
+solvePart1(testFilePath);
 const end = Date.now();
 write(`Execution time: ${end - start} ms`);
