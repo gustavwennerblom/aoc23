@@ -47,16 +47,16 @@ const getAdjacentTiles = (matrix: MatrixNode[][], currentTile: MatrixNode) => {
   const westernTile = getWesternNode(matrix, currentTile);
 
   const adjacentTiles: AdjacentTiles = {};
-  if (northernTile && northernTile.value !== "'" && !northernTile.visited) {
+  if (northernTile && northernTile.value !== "'") {
     adjacentTiles["N"] = northernTile;
   }
-  if (southernTile && southernTile.value !== "'" && !southernTile.visited) {
+  if (southernTile && southernTile.value !== "'") {
     adjacentTiles["S"] = southernTile;
   }
-  if (easternTile && easternTile.value !== "'" && !easternTile.visited) {
+  if (easternTile && easternTile.value !== "'") {
     adjacentTiles["E"] = easternTile;
   }
-  if (westernTile && westernTile.value !== "'" && !westernTile.visited) {
+  if (westernTile && westernTile.value !== "'") {
     adjacentTiles["W"] = westernTile;
   }
 
@@ -102,35 +102,28 @@ const moveCrucible = (
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
 
-    if (iter % 1000000 === 0) {
+    if (iter % 100 === 0) {
       console.log(
         `Iteration ${iter}, heap length ${heap.length}, currentTile ${currentTile.y}, ${currentTile.x}`
       );
     }
 
-    if (currentCrucible.heatLossIncurred > currentTile.costToReach!) {
-      continue;
-    }
+    // if (currentCrucible.heatLossIncurred > currentTile.costToReach!) {
+    //   continue;
+    // }
 
     const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
-    const crucibleHeatLossIncludingThis =
-      currentCrucible.heatLossIncurred + parseInt(currentTile.value);
-
-    if (
-      currentTile.costToReach &&
-      crucibleHeatLossIncludingThis < currentTile.costToReach
-    ) {
-      currentTile.costToReach = crucibleHeatLossIncludingThis;
-    }
-    currentTile.visited = true;
 
     if (
       currentTile.y === endNodeCoords[0] &&
       currentTile.x === endNodeCoords[1]
     ) {
       console.log("Found the exit!");
-      break;
+      return currentCrucible;
     }
+
+    currentTile.visited = true;
+    currentTile.costToReach = currentCrucible.heatLossIncurred;
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
@@ -153,13 +146,12 @@ const moveCrucible = (
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
           heatLossIncurred:
-            currentCrucible.heatLossIncurred + parseInt(currentTile.value),
+            currentCrucible.heatLossIncurred + parseInt(nextTile.value),
         };
         heap.push(newCrucible);
       }
     }
   }
-  return matrix;
 };
 
 function solvePart1(file_path: string) {
@@ -168,12 +160,8 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const travelledMatrix = moveCrucible(matrix, [1, 1], [endY, endX]);
-  const arrivalTile = travelledMatrix[endY][endX];
-
-  // Remove the heat losses incurred on the start tile
-  const totalHeatLoss = arrivalTile.costToReach! - parseInt(matrix[1][1].value);
-  write(`Part 1: Minimum heat loss ${totalHeatLoss}`);
+  const minHeatLossCrucible = moveCrucible(matrix, [1, 1], [endY, endX]);
+  write(`Part 1: Minimum heat loss ${minHeatLossCrucible?.heatLossIncurred}`);
 }
 
 function solvePart2(file_path: string) {
