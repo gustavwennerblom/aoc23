@@ -4,6 +4,7 @@ import { write } from "../../lib/writer";
 import {
   MatrixNode,
   getEasternNode,
+  getManhattanDistance,
   getNorthernNode,
   getSouthernNode,
   getWesternNode,
@@ -31,6 +32,7 @@ type CrucibleState = {
   };
   heatLossIncurred: number;
   directionHistory: string[];
+  priority: number;
 };
 
 type AdjacentTiles = {
@@ -78,6 +80,10 @@ const getOppositeDirection = (direction: string) => {
   }
 };
 
+const isTarget = (tile: MatrixNode, endNodeCoords: [y: number, x: number]) => {
+  return tile.y === endNodeCoords[0] && tile.x === endNodeCoords[1];
+};
+
 const moveCrucible = (
   _matrix: MatrixNode[][],
   startNodeCoords: [y: number, x: number],
@@ -85,37 +91,37 @@ const moveCrucible = (
 ) => {
   const matrix = structuredClone(_matrix);
 
+  // This comparator considers a low priority number to be a higher priority
   const comparator = (a: CrucibleState, b: CrucibleState) =>
-    a.heatLossIncurred - b.heatLossIncurred;
-  const heap = new Heap(comparator);
+    a.priority - b.priority;
+  const priorityQueue = new Heap(comparator);
 
-  heap.push({
+  priorityQueue.push({
     position: { y: startNodeCoords[0], x: startNodeCoords[1] },
     directionHistory: [],
     heatLossIncurred: 0,
+    priority: 0,
   });
   let iter = 0;
-  while (heap.length > 0) {
+  const solutions: CrucibleState[] = [];
+  while (priorityQueue.length > 0) {
     iter++;
 
-    const currentCrucible = heap.pop() as CrucibleState;
+    const currentCrucible = priorityQueue.pop() as CrucibleState;
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
 
     if (iter % 100000 === 0) {
       console.log(
-        `Iteration ${iter}, heap length ${heap.length}, currentTile ${currentTile.y}, ${currentTile.x}`
+        `Iteration ${iter}, heap length ${priorityQueue.length}, currentTile ${currentTile.y}, ${currentTile.x}`
       );
     }
 
     const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
 
-    if (
-      currentTile.y === endNodeCoords[0] &&
-      currentTile.x === endNodeCoords[1]
-    ) {
+    if (isTarget(currentTile, endNodeCoords)) {
       console.log("Found the exit!");
-      return currentCrucible;
+      solutions.push(currentCrucible);
     }
 
     currentTile.visited = true;
@@ -138,21 +144,33 @@ const moveCrucible = (
       disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
 
       if (!disallowedDirections.includes(direction)) {
+        const nextHeatLossIncurred =
+          currentCrucible.heatLossIncurred + parseInt(nextTile.value);
         const newCrucible: CrucibleState = {
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
-          heatLossIncurred:
-            currentCrucible.heatLossIncurred + parseInt(nextTile.value),
+          heatLossIncurred: nextHeatLossIncurred,
+          priority:
+            nextHeatLossIncurred +
+            getManhattanDistance(
+              currentTile,
+              matrix[endNodeCoords[0]][endNodeCoords[1]]
+            ) *
+              1,
         };
         if (
           nextTile.costToReach &&
           newCrucible.heatLossIncurred <= nextTile.costToReach
         ) {
-          heap.push(newCrucible);
+          if (solutions.length > 0 && !isTarget(nextTile, endNodeCoords)) {
+            continue;
+          }
+          priorityQueue.push(newCrucible);
         }
       }
     }
   }
+  return solutions;
 };
 
 function solvePart1(file_path: string) {
@@ -161,7 +179,10 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const minHeatLossCrucible = moveCrucible(matrix, [1, 1], [endY, endX]);
+  const minHeatLossCrucibles = moveCrucible(matrix, [1, 1], [endY, endX]);
+  const minHeatLossCrucible = minHeatLossCrucibles.sort(
+    (a, b) => a.heatLossIncurred - b.heatLossIncurred
+  )[0];
   write(`Part 1: Minimum heat loss ${minHeatLossCrucible?.heatLossIncurred}`);
 }
 

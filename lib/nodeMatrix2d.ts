@@ -150,3 +150,10 @@ export function padMatrix(
   }
   return paddedMatrix;
 }
+
+export function getManhattanDistance(
+  nodeA: MatrixNode,
+  nodeB: MatrixNode
+): number {
+  return Math.abs(nodeA.x - nodeB.x) + Math.abs(nodeA.y - nodeB.y);
+}
