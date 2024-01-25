@@ -4,6 +4,7 @@ import { write } from "../../lib/writer";
 import {
   MatrixNode,
   getEasternNode,
+  getManhattanDistance,
   getNorthernNode,
   getSouthernNode,
   getWesternNode,
@@ -152,11 +153,16 @@ const moveCrucible = (
         const nextHeatLossIncurred =
           currentCrucible.heatLossIncurred + parseInt(nextTile.value);
 
+        const distanceToTarget = getManhattanDistance(
+          nextTile,
+          matrix[endNodeCoords[0]][endNodeCoords[1]]
+        );
+
         const newCrucible: CrucibleState = {
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
           heatLossIncurred: nextHeatLossIncurred,
-          priority: nextHeatLossIncurred,
+          priority: nextHeatLossIncurred + distanceToTarget,
         };
 
         crucibleMovesSeen.add(
