@@ -4,7 +4,6 @@ import { write } from "../../lib/writer";
 import {
   MatrixNode,
   getEasternNode,
-  getManhattanDistance,
   getNorthernNode,
   getSouthernNode,
   getWesternNode,
@@ -12,7 +11,6 @@ import {
   printMatrix,
 } from "../../lib/nodeMatrix2d";
 import { Heap } from "heap-js";
-import test from "node:test";
 
 const testFilePath: string = path.resolve(`${__dirname}/test.txt`);
 const inputFilePath: string = path.resolve(`${__dirname}/input.txt`);
@@ -90,6 +88,25 @@ const serializeMove = (tile: MatrixNode, direction: string[]) =>
 
 const crucibleMovesSeen = new Set<string>();
 
+const getBannedDirections = (crucible: CrucibleState) => {
+  const bannedDirections: string[] = [];
+  const lastThreeDirections = crucible.directionHistory.slice(-3);
+  const lastDirection = crucible.directionHistory.slice(-1)[0];
+
+  // Crucible cannot move in the same direction more than three consecutive times
+  if (
+    lastThreeDirections.length === 3 &&
+    lastThreeDirections.every((d) => d === lastDirection)
+  ) {
+    bannedDirections.push(lastDirection);
+  }
+
+  // Crucible cannot move in the opposite direction of the last move
+  bannedDirections.push(getOppositeDirection(lastDirection));
+
+  return bannedDirections;
+};
+
 const moveCrucible = (
   _matrix: MatrixNode[][],
   startNodeCoords: [y: number, x: number],
@@ -109,45 +126,22 @@ const moveCrucible = (
     priority: 0,
   });
   let iter = 0;
-  const solutions: CrucibleState[] = [];
   while (priorityQueue.length > 0) {
     iter++;
-
     const currentCrucible = priorityQueue.pop() as CrucibleState;
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
 
-    if (iter % 100000 === 0) {
-      console.log(
-        `Iteration ${iter}, heap length ${priorityQueue.length}, currentTile ${currentTile.y}, ${currentTile.x}, priority ${currentCrucible.priority}`
-      );
-    }
-
-    const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
-
     if (isTarget(currentTile, endNodeCoords)) {
       console.log("Found the exit!");
-      solutions.push(currentCrucible);
-      continue;
+      return currentCrucible;
     }
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
-      // if (nextTile.visited) continue;
-      const disallowedDirections: string[] = [];
-      const lastCrucibleDirection =
-        currentCrucible.directionHistory.slice(-1)[0];
-      // Crucible can only move in a direction if it hasn't moved in that direction in the last three moves
-      if (
-        lastThreeDirections.length === 3 &&
-        lastThreeDirections.every((d) => d === direction)
-      ) {
-        disallowedDirections.push(lastCrucibleDirection);
-      }
-      // Crucible cannot move in the opposite direction of the last move
-      disallowedDirections.push(getOppositeDirection(lastCrucibleDirection));
-
-      if (!disallowedDirections.includes(direction)) {
+      const bannedDirections = getBannedDirections(currentCrucible);
+      if (!bannedDirections.includes(direction)) {
+        const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
         if (
           crucibleMovesSeen.has(
             serializeMove(currentTile, [...lastThreeDirections, direction])
@@ -157,10 +151,7 @@ const moveCrucible = (
         }
         const nextHeatLossIncurred =
           currentCrucible.heatLossIncurred + parseInt(nextTile.value);
-        const distanceToTarget = getManhattanDistance(
-          currentTile,
-          matrix[endNodeCoords[0]][endNodeCoords[1]]
-        );
+
         const newCrucible: CrucibleState = {
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
@@ -168,9 +159,6 @@ const moveCrucible = (
           priority: nextHeatLossIncurred,
         };
 
-        if (solutions.length > 0 && !isTarget(nextTile, endNodeCoords)) {
-          continue;
-        }
         crucibleMovesSeen.add(
           serializeMove(currentTile, [...lastThreeDirections, direction])
         );
@@ -178,7 +166,6 @@ const moveCrucible = (
       }
     }
   }
-  return solutions;
 };
 
 function solvePart1(file_path: string) {
@@ -187,10 +174,7 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const minHeatLossCrucibles = moveCrucible(matrix, [1, 1], [endY, endX]);
-  const minHeatLossCrucible = minHeatLossCrucibles.sort(
-    (a, b) => a.heatLossIncurred - b.heatLossIncurred
-  )[0];
+  const minHeatLossCrucible = moveCrucible(matrix, [1, 1], [endY, endX]);
   write(`Part 1: Minimum heat loss ${minHeatLossCrucible?.heatLossIncurred}`);
 }
 
