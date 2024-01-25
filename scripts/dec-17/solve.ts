@@ -14,6 +14,8 @@ import {
 import { Heap } from "heap-js";
 
 const testFilePath: string = path.resolve(`${__dirname}/test.txt`);
+const testFile2Path: string = path.resolve(`${__dirname}/test2.txt`);
+
 const inputFilePath: string = path.resolve(`${__dirname}/input.txt`);
 
 const parseInput = (input: string) => {
@@ -89,7 +91,7 @@ const serializeMove = (tile: MatrixNode, direction: string[]) =>
 
 const crucibleMovesSeen = new Set<string>();
 
-const getBannedDirections = (crucible: CrucibleState) => {
+const getBannedDirectionsForStandardCrucibles = (crucible: CrucibleState) => {
   const bannedDirections: string[] = [];
   const lastThreeDirections = crucible.directionHistory.slice(-3);
   const lastDirection = crucible.directionHistory.slice(-1)[0];
@@ -108,10 +110,46 @@ const getBannedDirections = (crucible: CrucibleState) => {
   return bannedDirections;
 };
 
+const getBannedDirectionsForUltraCrucibles = (crucible: CrucibleState) => {
+  const bannedDirections: string[] = [];
+  const lastDirection = crucible.directionHistory.slice(-1)[0];
+  const lastFourDirections = crucible.directionHistory.slice(-4);
+  const lastTenDirections = crucible.directionHistory.slice(-10);
+
+  if (lastDirection === undefined) {
+    return bannedDirections;
+  }
+  // Crucible cannot move in the opposite direction of the last move
+  bannedDirections.push(getOppositeDirection(lastDirection));
+
+  // Crucible must move in the same direction at least 4 times
+  if (
+    (lastFourDirections.length === 4 &&
+      !lastFourDirections.every((d) => d === lastDirection)) ||
+    lastFourDirections.length < 4
+  ) {
+    bannedDirections.push(
+      ...["N", "S", "E", "W"].filter((d) => d !== lastDirection)
+    );
+  }
+
+  // Crucible cannot move in the same direction more than 10 consecutive times
+  if (
+    lastTenDirections.length === 10 &&
+    lastTenDirections.every((d) => d === lastDirection)
+  ) {
+    bannedDirections.push(lastDirection);
+  }
+
+  return bannedDirections;
+};
+
 const moveCrucible = (
   _matrix: MatrixNode[][],
   startNodeCoords: [y: number, x: number],
-  endNodeCoords: [y: number, x: number]
+  endNodeCoords: [y: number, x: number],
+  getBannedDirectionsFunc: (crucible: CrucibleState) => string[],
+  historyLength: number
 ) => {
   const matrix = structuredClone(_matrix);
 
@@ -140,9 +178,11 @@ const moveCrucible = (
 
     const adjacentTiles = getAdjacentTiles(matrix, currentTile);
     for (const [direction, nextTile] of Object.entries(adjacentTiles)) {
-      const bannedDirections = getBannedDirections(currentCrucible);
+      const bannedDirections = getBannedDirectionsFunc(currentCrucible);
       if (!bannedDirections.includes(direction)) {
-        const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
+        const lastThreeDirections = currentCrucible.directionHistory.slice(
+          -historyLength
+        );
         if (
           crucibleMovesSeen.has(
             serializeMove(currentTile, [...lastThreeDirections, direction])
@@ -180,16 +220,34 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const minHeatLossCrucible = moveCrucible(matrix, [1, 1], [endY, endX]);
+  const minHeatLossCrucible = moveCrucible(
+    matrix,
+    [1, 1],
+    [endY, endX],
+    getBannedDirectionsForStandardCrucibles,
+    3
+  );
   write(`Part 1: Minimum heat loss ${minHeatLossCrucible?.heatLossIncurred}`);
 }
 
 function solvePart2(file_path: string) {
   const input = readFile(file_path);
+  const matrix = parseInput(input);
+  const endY = matrix.length - 2;
+  const endX = matrix[0].length - 2;
+  write(`Part 2: Exit tile ${endY}, ${endX}`);
+  const minHeatLossCrucible = moveCrucible(
+    matrix,
+    [1, 1],
+    [endY, endX],
+    getBannedDirectionsForUltraCrucibles,
+    10
+  );
+  write(`Part 2: Minimum heat loss ${minHeatLossCrucible?.heatLossIncurred}`);
 }
 
 const start = Date.now();
 solvePart1(inputFilePath);
-// 698 (too high)
+
 const end = Date.now();
 write(`Execution time: ${end - start} ms`);
