@@ -102,15 +102,11 @@ const moveCrucible = (
     const currentTile =
       matrix[currentCrucible.position.y][currentCrucible.position.x];
 
-    if (iter % 100 === 0) {
+    if (iter % 100000 === 0) {
       console.log(
         `Iteration ${iter}, heap length ${heap.length}, currentTile ${currentTile.y}, ${currentTile.x}`
       );
     }
-
-    // if (currentCrucible.heatLossIncurred > currentTile.costToReach!) {
-    //   continue;
-    // }
 
     const lastThreeDirections = currentCrucible.directionHistory.slice(-3);
 
@@ -148,7 +144,12 @@ const moveCrucible = (
           heatLossIncurred:
             currentCrucible.heatLossIncurred + parseInt(nextTile.value),
         };
-        heap.push(newCrucible);
+        if (
+          nextTile.costToReach &&
+          newCrucible.heatLossIncurred <= nextTile.costToReach
+        ) {
+          heap.push(newCrucible);
+        }
       }
     }
   }
