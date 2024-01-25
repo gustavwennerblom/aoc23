@@ -113,7 +113,7 @@ const moveCrucible = (
 
     if (iter % 100000 === 0) {
       console.log(
-        `Iteration ${iter}, heap length ${priorityQueue.length}, currentTile ${currentTile.y}, ${currentTile.x}`
+        `Iteration ${iter}, heap length ${priorityQueue.length}, currentTile ${currentTile.y}, ${currentTile.x}, priority ${currentCrucible.priority}`
       );
     }
 
@@ -146,17 +146,15 @@ const moveCrucible = (
       if (!disallowedDirections.includes(direction)) {
         const nextHeatLossIncurred =
           currentCrucible.heatLossIncurred + parseInt(nextTile.value);
+        const distanceToTarget = getManhattanDistance(
+          currentTile,
+          matrix[endNodeCoords[0]][endNodeCoords[1]]
+        );
         const newCrucible: CrucibleState = {
           position: { y: nextTile.y, x: nextTile.x },
           directionHistory: [...currentCrucible.directionHistory, direction],
           heatLossIncurred: nextHeatLossIncurred,
-          priority:
-            nextHeatLossIncurred +
-            getManhattanDistance(
-              currentTile,
-              matrix[endNodeCoords[0]][endNodeCoords[1]]
-            ) *
-              1,
+          priority: nextHeatLossIncurred + distanceToTarget,
         };
         if (
           nextTile.costToReach &&
@@ -179,7 +177,7 @@ function solvePart1(file_path: string) {
   const endY = matrix.length - 2;
   const endX = matrix[0].length - 2;
   write(`Part 1: Exit tile ${endY}, ${endX}`);
-  const minHeatLossCrucibles = moveCrucible(matrix, [1, 1], [endY, endX]);
+  const minHeatLossCrucibles = moveCrucible(matrix, [80, 80], [endY, endX]);
   const minHeatLossCrucible = minHeatLossCrucibles.sort(
     (a, b) => a.heatLossIncurred - b.heatLossIncurred
   )[0];
@@ -191,6 +189,6 @@ function solvePart2(file_path: string) {
 }
 
 const start = Date.now();
-solvePart1(testFilePath);
+solvePart1(inputFilePath);
 const end = Date.now();
 write(`Execution time: ${end - start} ms`);
